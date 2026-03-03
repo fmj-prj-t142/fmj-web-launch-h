@@ -1321,7 +1321,10 @@
     <div class="content" id="content">
       <div class="table-wrap">
         <div class="table-header">
-          <div class="th"></div>
+          <div class="th th-filter" onclick="toggleColDropdown('brand', event)" id="th-brand">브랜드 <span
+              class="th-arrow">▾</span>
+            <div class="col-dropdown" id="col-dd-brand"></div>
+          </div>
           <div class="th">상품명</div>
           <div class="th">종수</div>
           <div class="th th-filter" onclick="toggleColDropdown('season', event)" id="th-season">시즌 <span
@@ -1455,7 +1458,7 @@
     const BRANDS = ['WV', 'JM', 'PS', 'EZ', 'FP'];
     const BRAND_COLORS = { WV: '#3b6cf4', JM: '#1d8f4e', PS: '#b8720a', EZ: '#c0327a', FP: '#6d4fc2' };
     let filters = { brands: new Set(BRANDS), seasons: new Set(['WS', 'SS']), details: new Set(['done', 'scheduled', 'pending']), uploads: new Set(['registered', 'unregistered', 'na']), view: 'all' };
-    let colFilters = { season: null, detail: null, upload: null }; // 컬럼 헤더 드롭다운 필터
+    let colFilters = { brand: null, season: null, detail: null, upload: null }; // 컬럼 헤더 드롭다운 필터
     let searchQ = '';
 
     const TODAY = new Date();
@@ -1757,6 +1760,7 @@
         if (filters.view === 'pending' && d.web_status !== '미정') return false;
 
         // 컬럼 헤더 드롭다운 필터
+        if (colFilters.brand && d.brand !== colFilters.brand) return false;
         if (colFilters.season && d.season !== colFilters.season) return false;
         if (colFilters.detail) {
           if (colFilters.detail === 'done' && !d.detail_done) return false;
@@ -2112,7 +2116,12 @@
       const dd = document.getElementById(`col-dd-${type}`);
       let items = [];
 
-      if (type === 'season') {
+      if (type === 'brand') {
+        items = [
+          { value: null, label: '전체', count: DATA.length },
+          ...BRANDS.map(b => ({ value: b, label: b, count: DATA.filter(d => d.brand === b).length }))
+        ];
+      } else if (type === 'season') {
         const wsCount = DATA.filter(d => d.season === 'WS').length;
         const ssCount = DATA.filter(d => d.season === 'SS').length;
         items = [
