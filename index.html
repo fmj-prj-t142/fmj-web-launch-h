@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>브랜드 업데이트 일정 대시보드</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #f5f3ee;
+    --surface: #fdfcf9;
+    --surface2: #eeebe4;
+    --border: #ddd9d0;
+    --text: #2c2925;
+    --muted: #8c8479;
+    --accent: #3b6cf4;
+    --green: #1d8f4e;
+    --yellow: #b8720a;
+    --red: #c0392b;
+    --purple: #6d4fc2;
+
+    --WV: #3b6cf4;
+    --JM: #1d8f4e;
+    --PS: #b8720a;
+    --EZ: #c0327a;
+    --FP: #6d4fc2;
+    --TWN: #0e8fa0;
+    --PL: #d4530f;
+  }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 13px;
+  }
+
+  /* Header */
+  .header {
+    padding: 24px 32px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .header-title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .header-subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+  .badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-weight: 500;
+    font-family: 'Space Mono', monospace;
+  }
+  .badge-season { background: #e8edfb; color: var(--accent); border: 1px solid #c5d0f7; }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-card {
+    background: var(--surface);
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .stat-label { font-size: 11px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-value { font-size: 28px; font-weight: 900; font-family: 'Space Mono', monospace; line-height: 1; }
+  .stat-sub { font-size: 11px; color: var(--muted); }
+  .stat-green { color: var(--green); }
+  .stat-yellow { color: var(--yellow); }
+  .stat-red { color: var(--red); }
+  .stat-blue { color: var(--accent); }
+  .stat-purple { color: var(--purple); }
+
+  /* Main layout */
+  .main {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    height: calc(100vh - 120px);
+    overflow: hidden;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px 0;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .sidebar-section { margin-bottom: 24px; }
+  .sidebar-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    padding: 0 16px 8px;
+  }
+
+  .filter-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border: none;
+    background: none;
+    color: var(--text);
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    font-size: 13px;
+  }
+  .filter-btn:hover { background: var(--surface2); }
+  .filter-btn.active { background: rgba(79, 122, 255, 0.1); }
+
+  .brand-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-right: 8px;
+  }
+  .filter-left { display: flex; align-items: center; }
+  .filter-count {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .search-wrap { padding: 0 16px 12px; }
+  .search-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+
+  /* Content */
+  .content {
+    overflow-y: auto;
+    padding: 0;
+  }
+  .content::-webkit-scrollbar { width: 4px; }
+  .content::-webkit-scrollbar-track { background: transparent; }
+  .content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Table */
+  .table-wrap { min-width: 900px; }
+  .table-header {
+    display: grid;
+    grid-template-columns: 40px 190px 55px 70px 100px 90px 90px 110px 110px 80px 90px;
+    gap: 0;
+    padding: 10px 16px;
+    background: var(--surface2);
+    border-bottom: 2px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .th {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .table-row {
+    display: grid;
+    grid-template-columns: 40px 190px 55px 70px 100px 90px 90px 110px 110px 80px 90px;
+    gap: 0;
+    padding: 0 16px;
+    border-bottom: 1px solid rgba(180,170,160,0.2);
+    cursor: pointer;
+    transition: background 0.1s;
+    min-height: 44px;
+    align-items: center;
+  }
+  .table-row:hover { background: rgba(0,0,0,0.02); }
+  .table-row.highlight { background: rgba(59, 108, 244, 0.04); }
+
+  .td { padding: 8px 0; overflow: hidden; }
+
+  .brand-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px; height: 20px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .product-name {
+    font-size: 11px;
+    line-height: 1.3;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 8px;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 99px;
+    white-space: nowrap;
+    font-family: 'Space Mono', monospace;
+  }
+  .pill-done { background: rgba(29, 143, 78, 0.12); color: var(--green); }
+  .pill-scheduled { background: rgba(184, 114, 10, 0.12); color: var(--yellow); }
+  .pill-pending { background: rgba(140, 132, 121, 0.15); color: var(--muted); }
+
+  .date-text {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    white-space: nowrap;
+  }
+  .date-text.highlight-date { color: var(--yellow); }
+  .date-text.past-date { color: var(--green); }
+
+  /* Workflow steps */
+  .workflow-col { display: flex; align-items: center; gap: 3px; }
+  .step {
+    width: 18px; height: 18px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .step-done { background: rgba(29, 143, 78, 0.12); color: var(--green); }
+  .step-ready { background: rgba(184, 114, 10, 0.12); color: var(--yellow); }
+  .step-blocked { background: rgba(140, 132, 121, 0.12); color: var(--muted); }
+  .step-arrow { color: var(--muted); font-size: 8px; }
+
+  /* Season chip */
+  .season-chip {
+    font-size: 9px;
+    font-weight: 700;
+    font-family: 'Space Mono', monospace;
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+  .season-ws { background: rgba(99, 102, 241, 0.15); color: #818cf8; }
+  .season-ss { background: rgba(251, 146, 60, 0.15); color: #fb923c; }
+
+  /* Person */
+  .person-text {
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Group header */
+  .group-header {
+    padding: 10px 16px 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: sticky;
+    top: 41px;
+    z-index: 5;
+  }
+  .group-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Brand progress bars */
+  .brand-bars { padding: 0 16px; }
+  .brand-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+  }
+  .brand-bar-label {
+    width: 30px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'Space Mono', monospace;
+  }
+  .brand-bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .brand-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+  .brand-bar-pct {
+    width: 32px;
+    font-size: 10px;
+    color: var(--muted);
+    text-align: right;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* Today line */
+  .today-marker {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--red);
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+  }
+  .today-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); }
+
+  /* Toggle view */
+  .view-toggle {
+    display: flex;
+    gap: 2px;
+    background: var(--surface2);
+    border-radius: 6px;
+    padding: 2px;
+  }
+  .view-btn {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    color: var(--muted);
+    background: none;
+    transition: all 0.15s;
+  }
+  .view-btn.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  /* Empty state */
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    color: var(--muted);
+    gap: 8px;
+  }
+  .empty-icon { font-size: 32px; }
+
+  .nukki-tag {
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(140,132,121,0.15);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* 신상등록 버튼 */
+  .reg-btn {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 5px;
+    border: 1.5px solid;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .reg-empty {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--muted);
+  }
+  .reg-empty:hover { border-color: var(--accent); color: var(--accent); background: rgba(59,108,244,0.06); }
+  .reg-partial {
+    background: rgba(184,114,10,0.1);
+    border-color: var(--yellow);
+    color: var(--yellow);
+  }
+  .reg-done {
+    background: rgba(29,143,78,0.1);
+    border-color: var(--green);
+    color: var(--green);
+  }
+
+  /* 모델촬영 일정 패널 */
+  .model-panel {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .model-panel-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-right: 4px;
+    white-space: nowrap;
+  }
+  .shoot-card {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    min-width: 160px;
+  }
+  .shoot-card.done { border-color: rgba(29,143,78,0.4); background: rgba(29,143,78,0.06); }
+  .shoot-card.scheduled { border-color: rgba(59,108,244,0.4); background: rgba(59,108,244,0.06); }
+  .shoot-num {
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+    background: var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    white-space: nowrap;
+  }
+  .shoot-card.done .shoot-num { background: rgba(29,143,78,0.15); color: var(--green); }
+  .shoot-card.scheduled .shoot-num { background: rgba(59,108,244,0.15); color: var(--accent); }
+  .shoot-info { display: flex; flex-direction: column; gap: 1px; }
+  .shoot-date {
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Space Mono', monospace;
+    color: var(--text);
+  }
+  .shoot-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .shoot-badge-done { background: rgba(29,143,78,0.15); color: var(--green); }
+  .shoot-badge-sched { background: rgba(59,108,244,0.15); color: var(--accent); }
+  .shoot-edit-btn {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: all 0.15s;
+    line-height: 1;
+  }
+  .shoot-edit-btn:hover { background: var(--border); color: var(--text); }
+  .shoot-input-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .shoot-date-input {
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    padding: 3px 6px;
+    color: var(--text);
+    outline: none;
+    width: 90px;
+  }
+  .shoot-save-btn {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: none;
+    background: var(--accent);
+    color: white;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+  .shoot-done-toggle {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+    transition: all 0.15s;
+  }
+  .shoot-done-toggle.on { background: rgba(29,143,78,0.1); border-color: var(--green); color: var(--green); font-weight: 600; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Loading overlay */
+  .loading-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    gap: 16px;
+  }
+  .loading-spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 14px; color: var(--muted); font-weight: 500; }
+
+  /* Add product button */
+  .add-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: none;
+    background: var(--accent);
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .add-btn:hover { background: #2d5ad4; }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-backdrop.hidden { display: none; }
+  .modal {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 28px;
+    width: 520px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  }
+  .modal-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 20px;
+  }
+  .modal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .modal-field { display: flex; flex-direction: column; gap: 4px; }
+  .modal-field.full { grid-column: 1 / -1; }
+  .modal-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .modal-input {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: 'Noto Sans KR', sans-serif;
+    color: var(--text);
+    background: var(--surface);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .modal-input:focus { border-color: var(--accent); }
+  .modal-select {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: 'Noto Sans KR', sans-serif;
+    color: var(--text);
+    background: var(--surface);
+    outline: none;
+  }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .modal-cancel {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+  .modal-save {
+    padding: 8px 20px;
+    border-radius: 6px;
+    border: none;
+    background: var(--accent);
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+  .modal-save:hover { background: #2d5ad4; }
+
+  /* Toast notification */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--text);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 2000;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s;
+    pointer-events: none;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loading">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">데이터 불러오는 중...</div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<div class="header">
+  <div class="header-left">
+    <div>
+      <div class="header-title">브랜드 업데이트 일정</div>
+      <div class="header-subtitle">2026 상반기 — 작업흐름 대시보드</div>
+    </div>
+    <div class="today-marker">
+      <div class="today-dot"></div>
+      <span id="today-display"></span>
+    </div>
+  </div>
+  <div style="display:flex; gap:12px; align-items:center;">
+    <button class="add-btn" onclick="openAddModal()">+ 상품 추가</button>
+    <div class="view-toggle">
+      <button class="view-btn active" onclick="setView('all')">전체</button>
+      <button class="view-btn" onclick="setView('wip')">진행중</button>
+      <button class="view-btn" onclick="setView('pending')">미정</button>
+    </div>
+  </div>
+</div>
+
+<div class="stats-row" id="stats-row"></div>
+<div class="model-panel" id="model-panel"></div>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="search-wrap">
+        <input type="text" class="search-input" placeholder="상품명 검색..." id="search-input" oninput="applyFilters()">
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">브랜드</div>
+      <div id="brand-filters"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">진행률</div>
+      <div class="brand-bars" id="brand-bars"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">시즌</div>
+      <div id="season-filters"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">디테일 촬영</div>
+      <div id="detail-filters"></div>
+    </div>
+  </div>
+
+  <div class="content" id="content">
+    <div class="table-wrap">
+      <div class="table-header">
+        <div class="th"></div>
+        <div class="th">상품명</div>
+        <div class="th">종수</div>
+        <div class="th">시즌</div>
+        <div class="th">작업흐름</div>
+        <div class="th">입고일자</div>
+        <div class="th">제품전달</div>
+        <div class="th">디테일촬영</div>
+        <div class="th">판매예정</div>
+        <div class="th">담당자</div>
+        <div class="th">신상등록</div>
+      </div>
+      <div id="table-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Product Modal -->
+<div class="modal-backdrop hidden" id="add-modal" onclick="if(event.target===this)closeAddModal()">
+  <div class="modal">
+    <div class="modal-title">새 상품 추가</div>
+    <div class="modal-grid">
+      <div class="modal-field">
+        <div class="modal-label">브랜드</div>
+        <select class="modal-select" id="m-brand">
+          <option value="WV">WV</option>
+          <option value="JM">JM</option>
+          <option value="PS">PS</option>
+          <option value="EZ">EZ</option>
+          <option value="FP">FP</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">시즌</div>
+        <select class="modal-select" id="m-season">
+          <option value="WS">WS (겨울)</option>
+          <option value="SS">SS (여름)</option>
+        </select>
+      </div>
+      <div class="modal-field full">
+        <div class="modal-label">상품명</div>
+        <input class="modal-input" id="m-name" placeholder="예: WV 더프 헤링턴 자켓 JJOT7732">
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">종수</div>
+        <input class="modal-input" id="m-count" type="number" value="1" min="1">
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">누끼</div>
+        <select class="modal-select" id="m-nukki">
+          <option value="바닥">바닥</option>
+          <option value="옷걸이">옷걸이</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">판매예정일</div>
+        <input class="modal-input" id="m-sale" type="date">
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">입고일자</div>
+        <input class="modal-input" id="m-arrival" type="date">
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">제품전달일</div>
+        <input class="modal-input" id="m-delivery" type="date">
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">해외/국내</div>
+        <select class="modal-select" id="m-country">
+          <option value="">국내</option>
+          <option value="해외">해외</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">디테일 촬영일</div>
+        <input class="modal-input" id="m-detail-shoot" type="date">
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">촬영 담당자</div>
+        <input class="modal-input" id="m-detail-person" placeholder="예: 김지인">
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">모델 담당자</div>
+        <input class="modal-input" id="m-model-person" placeholder="예: 이정주">
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">웹 상태</div>
+        <select class="modal-select" id="m-web-status">
+          <option value="미정">미정</option>
+          <option value="완료">완료</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeAddModal()">취소</button>
+      <button class="modal-save" onclick="saveNewProduct()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<script>
+// ============================================
+// Firebase 초기화
+// ============================================
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ============================================
+// 전역 변수
+// ============================================
+let DATA = [];
+let modelShoots = [];
+const BRANDS = ['WV','JM','PS','EZ','FP'];
+const BRAND_COLORS = {WV:'#3b6cf4',JM:'#1d8f4e',PS:'#b8720a',EZ:'#c0327a',FP:'#6d4fc2'};
+let filters = { brands: new Set(BRANDS), seasons: new Set(['WS','SS']), details: new Set(['done','scheduled','pending']), view: 'all' };
+let searchQ = '';
+
+const TODAY = new Date();
+const todayStr = TODAY.getFullYear() + '.' + String(TODAY.getMonth()+1).padStart(2,'0') + '.' + String(TODAY.getDate()).padStart(2,'0');
+document.getElementById('today-display').textContent = todayStr + ' TODAY';
+
+// ============================================
+// Toast 알림
+// ============================================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ============================================
+// Firebase에서 데이터 로드
+// ============================================
+async function loadData() {
+  try {
+    // 상품 데이터 로드
+    const prodSnap = await db.collection('products').orderBy('delivery').get();
+    DATA = [];
+    prodSnap.forEach(doc => {
+      DATA.push({ _id: doc.id, ...doc.data() });
+    });
+
+    // 모델촬영 일정 로드
+    const shootSnap = await db.collection('modelShoots').orderBy('id').get();
+    modelShoots = [];
+    shootSnap.forEach(doc => {
+      modelShoots.push({ _docId: doc.id, ...doc.data(), editing: false });
+    });
+
+    // 로딩 해제 및 렌더링
+    document.getElementById('loading').style.display = 'none';
+    renderAll();
+  } catch (err) {
+    console.error('데이터 로드 실패:', err);
+    document.querySelector('.loading-text').textContent = '데이터 로드 실패. 콘솔 확인.';
+  }
+}
+
+function renderAll() {
+  renderStats();
+  renderModelPanel();
+  renderSidebar();
+  renderTable();
+}
+
+// ============================================
+// 모델촬영 패널
+// ============================================
+function renderModelPanel() {
+  const panel = document.getElementById('model-panel');
+  let html = '<span class="model-panel-label">📷 모델촬영 일정</span>';
+  modelShoots.forEach((s, i) => {
+    const cls = s.done ? 'done' : 'scheduled';
+    if (s.editing) {
+      html += `
+        <div class="shoot-card ${cls}">
+          <span class="shoot-num">${s.label}</span>
+          <div class="shoot-info">
+            <div class="shoot-input-row">
+              <input class="shoot-date-input" id="shoot-input-${i}" value="${s.date}" placeholder="예: 3월 27일" onkeydown="if(event.key==='Enter')saveShoot(${i})">
+              <button class="shoot-done-toggle ${s.done ? 'on' : ''}" onclick="toggleShootDone(${i})">${s.done ? '✓ 완료' : '예정'}</button>
+              <button class="shoot-save-btn" onclick="saveShoot(${i})">저장</button>
+            </div>
+          </div>
+        </div>`;
+    } else {
+      html += `
+        <div class="shoot-card ${cls}">
+          <span class="shoot-num">${s.label}</span>
+          <div class="shoot-info">
+            <span class="shoot-date">${s.date}</span>
+            <span class="shoot-badge ${s.done ? 'shoot-badge-done' : 'shoot-badge-sched'}">${s.done ? '완료' : '예정'}</span>
+          </div>
+          <button class="shoot-edit-btn" onclick="editShoot(${i})" title="수정">✎</button>
+        </div>`;
+    }
+  });
+  html += '<button class="shoot-edit-btn" onclick="addShoot()" style="border:1.5px dashed var(--border);border-radius:8px;padding:6px 14px;font-size:12px;color:var(--muted)" title="회차 추가">+ 회차 추가</button>';
+  panel.innerHTML = html;
+}
+
+function editShoot(i) {
+  modelShoots.forEach((s, j) => { s.editing = (j === i); });
+  renderModelPanel();
+  setTimeout(() => {
+    const inp = document.getElementById(`shoot-input-${i}`);
+    if (inp) { inp.focus(); inp.select(); }
+  }, 50);
+}
+
+async function saveShoot(i) {
+  const inp = document.getElementById(`shoot-input-${i}`);
+  if (inp) modelShoots[i].date = inp.value.trim() || modelShoots[i].date;
+  modelShoots[i].editing = false;
+
+  // Firebase 저장
+  if (modelShoots[i]._docId) {
+    await db.collection('modelShoots').doc(modelShoots[i]._docId).update({
+      date: modelShoots[i].date,
+      done: modelShoots[i].done
+    });
+  }
+  renderModelPanel();
+  showToast('모델촬영 일정 저장됨');
+}
+
+async function toggleShootDone(i) {
+  modelShoots[i].done = !modelShoots[i].done;
+  if (modelShoots[i]._docId) {
+    await db.collection('modelShoots').doc(modelShoots[i]._docId).update({ done: modelShoots[i].done });
+  }
+  renderModelPanel();
+  setTimeout(() => {
+    const inp = document.getElementById(`shoot-input-${i}`);
+    if (inp) inp.focus();
+  }, 50);
+}
+
+async function addShoot() {
+  const n = modelShoots.length + 1;
+  const newShoot = { id: n, label: `${n}회차`, date: '', done: false };
+  const docRef = await db.collection('modelShoots').add(newShoot);
+  modelShoots.push({ ...newShoot, _docId: docRef.id, editing: true });
+  renderModelPanel();
+  setTimeout(() => {
+    const inp = document.getElementById(`shoot-input-${modelShoots.length - 1}`);
+    if (inp) inp.focus();
+  }, 50);
+}
+
+// ============================================
+// 통계
+// ============================================
+function renderStats() {
+  const total = DATA.length;
+  const webDone = DATA.filter(d => d.web_status === '완료').length;
+  const detailDone = DATA.filter(d => d.detail_done).length;
+  const detailScheduled = DATA.filter(d => !d.detail_done && d.detail_scheduled).length;
+  const wsPending = DATA.filter(d => !d.web_status || d.web_status === '미정').length;
+
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">총 상품</div>
+      <div class="stat-value">${total}</div>
+      <div class="stat-sub">2026 상반기</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">웹 업데이트 완료</div>
+      <div class="stat-value stat-green">${webDone}</div>
+      <div class="stat-sub">${total ? Math.round(webDone/total*100) : 0}% 완료</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">디테일 촬영 완료</div>
+      <div class="stat-value stat-blue">${detailDone}</div>
+      <div class="stat-sub">${total ? Math.round(detailDone/total*100) : 0}% 완료</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">촬영 예정</div>
+      <div class="stat-value stat-yellow">${detailScheduled}</div>
+      <div class="stat-sub">일정 확정</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">판매일정 미정</div>
+      <div class="stat-value stat-red">${wsPending}</div>
+      <div class="stat-sub">확인 필요</div>
+    </div>
+  `;
+}
+
+// ============================================
+// 사이드바
+// ============================================
+function renderSidebar() {
+  const bf = document.getElementById('brand-filters');
+  const counts = {};
+  BRANDS.forEach(b => counts[b] = DATA.filter(d => d.brand === b).length);
+
+  bf.innerHTML = BRANDS.map(b => `
+    <button class="filter-btn ${filters.brands.has(b) ? 'active' : ''}" onclick="toggleBrand('${b}')">
+      <div class="filter-left">
+        <div class="brand-dot" style="background:${BRAND_COLORS[b]}"></div>
+        ${b}
+      </div>
+      <span class="filter-count">${counts[b]}</span>
+    </button>
+  `).join('');
+
+  bf.insertAdjacentHTML('afterbegin', `
+    <button class="filter-btn ${filters.brands.size === BRANDS.length ? 'active' : ''}" onclick="selectAllBrands()">
+      <div class="filter-left">
+        <div class="brand-dot" style="background:#4a5270"></div>
+        전체
+      </div>
+      <span class="filter-count">${DATA.length}</span>
+    </button>
+  `);
+
+  const bb = document.getElementById('brand-bars');
+  bb.innerHTML = BRANDS.map(b => {
+    const total = DATA.filter(d => d.brand === b).length;
+    const done = DATA.filter(d => d.brand === b && d.detail_done).length;
+    const pct = total ? Math.round(done/total*100) : 0;
+    return `
+      <div class="brand-bar-row">
+        <div class="brand-bar-label" style="color:${BRAND_COLORS[b]}">${b}</div>
+        <div class="brand-bar-track">
+          <div class="brand-bar-fill" style="width:${pct}%;background:${BRAND_COLORS[b]}"></div>
+        </div>
+        <div class="brand-bar-pct">${pct}%</div>
+      </div>
+    `;
+  }).join('');
+
+  const sf = document.getElementById('season-filters');
+  sf.innerHTML = ['WS','SS'].map(s => {
+    const c = DATA.filter(d => d.season === s).length;
+    return `<button class="filter-btn ${filters.seasons.has(s) ? 'active' : ''}" onclick="toggleSeason('${s}')">
+      <div class="filter-left"><div class="brand-dot" style="background:${s==='WS'?'#818cf8':'#fb923c'}"></div>${s === 'WS' ? '겨울 (WS)' : '여름 (SS)'}</div>
+      <span class="filter-count">${c}</span>
+    </button>`;
+  }).join('');
+
+  const df = document.getElementById('detail-filters');
+  df.innerHTML = [
+    {key:'done', label:'촬영 완료', color:'#22c55e', count: DATA.filter(d=>d.detail_done).length},
+    {key:'scheduled', label:'촬영 예정', color:'#f59e0b', count: DATA.filter(d=>!d.detail_done&&d.detail_scheduled).length},
+    {key:'pending', label:'미정', color:'#4a5270', count: DATA.filter(d=>!d.detail_done&&!d.detail_scheduled).length},
+  ].map(f => `
+    <button class="filter-btn ${filters.details.has(f.key) ? 'active' : ''}" onclick="toggleDetail('${f.key}')">
+      <div class="filter-left"><div class="brand-dot" style="background:${f.color}"></div>${f.label}</div>
+      <span class="filter-count">${f.count}</span>
+    </button>
+  `).join('');
+}
+
+// ============================================
+// 테이블
+// ============================================
+function getWorkflowStatus(item) {
+  const delivery = item.has_delivery;
+  const detail = item.detail_done;
+  const web = item.web_status === '완료';
+  return { delivery, detail, web };
+}
+
+function getDetailKey(item) {
+  if (item.detail_done) return 'done';
+  if (item.detail_scheduled) return 'scheduled';
+  return 'pending';
+}
+
+function getFilteredData() {
+  let data = DATA.filter(d => {
+    if (!filters.brands.has(d.brand)) return false;
+    if (!filters.seasons.has(d.season)) return false;
+    if (!filters.details.has(getDetailKey(d))) return false;
+    if (searchQ && !d.name.toLowerCase().includes(searchQ.toLowerCase())) return false;
+    if (filters.view === 'wip' && d.web_status === '완료') return false;
+    if (filters.view === 'pending' && d.web_status !== '미정') return false;
+    return true;
+  });
+  return data;
+}
+
+function renderTable() {
+  const data = getFilteredData();
+  const body = document.getElementById('table-body');
+
+  if (!data.length) {
+    body.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><div>검색 결과가 없습니다</div></div>';
+    return;
+  }
+
+  const groups = {};
+  data.forEach(item => {
+    let group;
+    if (item.web_status === '완료') group = '✅ 업데이트 완료';
+    else if (item.web_status !== '미정') group = `🔄 진행중 — 판매예정 ${item.sale_date ? item.sale_date.slice(5).replace('-','/') : ''}`;
+    else group = '⏳ 미정';
+    if (!groups[group]) groups[group] = [];
+    groups[group].push(item);
+  });
+
+  let html = '';
+  Object.entries(groups).forEach(([group, items]) => {
+    html += `
+      <div class="group-header">
+        <span>${group}</span>
+        <div class="filter-count" style="color:var(--muted)">${items.length}개</div>
+        <div class="group-line"></div>
+      </div>
+    `;
+    items.forEach(item => {
+      const wf = getWorkflowStatus(item);
+      const brandColor = BRAND_COLORS[item.brand] || '#4a5270';
+
+      const step1 = wf.delivery ? 'done' : 'blocked';
+      const step2 = wf.detail ? 'done' : (wf.delivery ? 'ready' : 'blocked');
+      const step3 = wf.web ? 'done' : (wf.detail ? 'ready' : 'blocked');
+
+      const stepClass = s => s === 'done' ? 'step-done' : s === 'ready' ? 'step-ready' : 'step-blocked';
+      const stepLabel = s => s === 'done' ? '✓' : s === 'ready' ? '→' : '—';
+
+      let deliveryText = item.delivery && item.delivery !== 'c' ? item.delivery.slice(5).replace('-','/') : '—';
+      let arrivalText = item.arrival ? item.arrival.slice(5).replace('-','/') : '—';
+      let detailText = item.detail_shoot || '—';
+      if (detailText !== '—' && detailText !== '완료') detailText = detailText.slice(5).replace('-','/');
+
+      let saleText = item.sale_date ? item.sale_date.slice(5).replace('-','/') : '—';
+
+      const regState = item.reg_state || '';
+      const safeId = item._id;
+      const regBtn = regState === 'done'
+        ? `<button class="reg-btn reg-done" onclick="cycleReg(event,'${safeId}')">✓ 완료</button>`
+        : regState === 'partial'
+        ? `<button class="reg-btn reg-partial" onclick="cycleReg(event,'${safeId}')">△ 진행중</button>`
+        : `<button class="reg-btn reg-empty" onclick="cycleReg(event,'${safeId}')">신상등록</button>`;
+
+      html += `
+        <div class="table-row ${item.detail_scheduled && !item.detail_done ? 'highlight' : ''}">
+          <div class="td">
+            <div class="brand-chip" style="background:${brandColor}20;color:${brandColor}">${item.brand}</div>
+          </div>
+          <div class="td">
+            <div class="product-name" title="${item.name}">${item.name}</div>
+          </div>
+          <div class="td">
+            <span style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${item.count || '—'}</span>
+          </div>
+          <div class="td">
+            <span class="season-chip season-${(item.season||'').toLowerCase()}">${item.season || '—'}</span>
+          </div>
+          <div class="td">
+            <div class="workflow-col">
+              <div class="step ${stepClass(step1)}" title="제품전달">${stepLabel(step1)}</div>
+              <div class="step-arrow">›</div>
+              <div class="step ${stepClass(step2)}" title="디테일촬영">${stepLabel(step2)}</div>
+              <div class="step-arrow">›</div>
+              <div class="step ${stepClass(step3)}" title="웹업데이트">${stepLabel(step3)}</div>
+            </div>
+          </div>
+          <div class="td">
+            <span class="date-text ${item.has_arrival ? 'past-date' : ''}">${arrivalText}</span>
+          </div>
+          <div class="td">
+            <span class="date-text ${wf.delivery ? 'past-date' : ''}">${deliveryText}</span>
+          </div>
+          <div class="td">
+            ${item.detail_done
+              ? '<span class="status-pill pill-done">✓ 완료</span>'
+              : item.detail_scheduled
+              ? `<span class="status-pill pill-scheduled">⏰ ${detailText}</span>`
+              : '<span class="status-pill pill-pending">미정</span>'
+            }
+          </div>
+          <div class="td">
+            ${item.web_status === '완료'
+              ? '<span class="status-pill pill-done">완료</span>'
+              : item.web_status !== '미정'
+              ? `<span class="status-pill pill-scheduled">${saleText}</span>`
+              : '<span class="status-pill pill-pending">미정</span>'
+            }
+          </div>
+          <div class="td">
+            <span class="person-text">${item.detail_person || '—'}</span>
+          </div>
+          <div class="td">
+            ${regBtn}
+          </div>
+        </div>
+      `;
+    });
+  });
+
+  body.innerHTML = html;
+}
+
+// ============================================
+// 신상등록 상태 변경 → Firebase 저장
+// ============================================
+async function cycleReg(e, docId) {
+  e.stopPropagation();
+  const item = DATA.find(d => d._id === docId);
+  if (!item) return;
+
+  const cur = item.reg_state || '';
+  const next = cur === '' ? 'partial' : cur === 'partial' ? 'done' : '';
+  item.reg_state = next;
+
+  await db.collection('products').doc(docId).update({ reg_state: next });
+  renderTable();
+}
+
+// ============================================
+// 필터
+// ============================================
+function toggleBrand(b) {
+  if (filters.brands.has(b)) {
+    if (filters.brands.size > 1) filters.brands.delete(b);
+  } else {
+    filters.brands.add(b);
+  }
+  applyFilters();
+}
+
+function selectAllBrands() {
+  BRANDS.forEach(b => filters.brands.add(b));
+  applyFilters();
+}
+
+function toggleSeason(s) {
+  if (filters.seasons.has(s)) {
+    if (filters.seasons.size > 1) filters.seasons.delete(s);
+  } else {
+    filters.seasons.add(s);
+  }
+  applyFilters();
+}
+
+function toggleDetail(d) {
+  if (filters.details.has(d)) {
+    if (filters.details.size > 1) filters.details.delete(d);
+  } else {
+    filters.details.add(d);
+  }
+  applyFilters();
+}
+
+function setView(v) {
+  filters.view = v;
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  searchQ = document.getElementById('search-input').value;
+  renderSidebar();
+  renderTable();
+}
+
+// ============================================
+// 상품 추가 모달
+// ============================================
+function openAddModal() {
+  document.getElementById('add-modal').classList.remove('hidden');
+}
+
+function closeAddModal() {
+  document.getElementById('add-modal').classList.add('hidden');
+  // 폼 초기화
+  ['m-name','m-detail-person','m-model-person','m-sale','m-arrival','m-delivery','m-detail-shoot'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('m-count').value = '1';
+}
+
+async function saveNewProduct() {
+  const name = document.getElementById('m-name').value.trim();
+  if (!name) { alert('상품명을 입력해주세요.'); return; }
+
+  const brand = document.getElementById('m-brand').value;
+  const season = document.getElementById('m-season').value;
+  const count = parseInt(document.getElementById('m-count').value) || 1;
+  const nukki = document.getElementById('m-nukki').value;
+  const saleDate = document.getElementById('m-sale').value || null;
+  const arrival = document.getElementById('m-arrival').value || null;
+  const delivery = document.getElementById('m-delivery').value || null;
+  const country = document.getElementById('m-country').value || null;
+  const detailShoot = document.getElementById('m-detail-shoot').value || null;
+  const detailPerson = document.getElementById('m-detail-person').value.trim() || null;
+  const modelPerson = document.getElementById('m-model-person').value.trim() || null;
+  const webStatus = document.getElementById('m-web-status').value;
+
+  const newProduct = {
+    brand,
+    name,
+    count,
+    season,
+    sale_date: saleDate,
+    arrival,
+    delivery,
+    detail_shoot: detailShoot ? detailShoot : (webStatus === '완료' ? '완료' : null),
+    detail_person: detailPerson,
+    model_person: modelPerson,
+    has_model: true,
+    nukki,
+    country,
+    web_status: webStatus,
+    has_delivery: !!delivery,
+    has_arrival: !!arrival,
+    detail_done: webStatus === '완료' || (detailShoot === '완료'),
+    detail_scheduled: !!detailShoot && detailShoot !== '완료',
+    reg_state: '',
+    created_at: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  try {
+    const docRef = await db.collection('products').add(newProduct);
+    DATA.push({ _id: docRef.id, ...newProduct });
+    closeAddModal();
+    renderAll();
+    showToast('상품이 추가되었습니다');
+  } catch (err) {
+    console.error('상품 추가 실패:', err);
+    alert('저장 실패. 콘솔을 확인해주세요.');
+  }
+}
+
+// ============================================
+// 초기 데이터 마이그레이션 (최초 1회만 실행)
+// ============================================
+async function migrateData() {
+  const INITIAL_DATA = [{"brand":"WV","name":"WV 더프 헤링턴 자켓 추가컬러 JJOT7732","count":2,"season":"WS","sale_date":"2026-01-15","arrival":"2026-01-16","delivery":"2026-01-02","detail_shoot":"완료","detail_person":"김지인","model_person":null,"has_model":false,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 리치 오버 MA-1 자켓 추가컬러 YHJK2269","count":1,"season":"WS","sale_date":"2026-02-06","arrival":"2026-02-13","delivery":"2026-01-02","detail_shoot":"완료","detail_person":"김형준","model_person":null,"has_model":false,"nukki":"바닥","country":"해외","web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 로그 와이드 기모 스웨트팬츠 5종 KJLP2685","count":5,"season":"WS","sale_date":"2026-02-03","arrival":"2026-01-07","delivery":"2025-12-01","detail_shoot":"완료","detail_person":"김형준","model_person":"김형준","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"PS","name":"PS 로컬 크로스 체크 셔츠 2종 JILS4744","count":2,"season":"WS","sale_date":"2026-01-15","arrival":"2026-01-07","delivery":"2026-01-05","detail_shoot":"완료","detail_person":"김지인","model_person":null,"has_model":true,"nukki":"옷걸이","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 택트 피그먼트 맨투맨 5종 JUMT2686","count":5,"season":"WS","sale_date":"2026-02-03","arrival":"2026-01-06","delivery":"2026-01-08","detail_shoot":"완료","detail_person":"장종욱","model_person":"장종욱","has_model":true,"nukki":"옷걸이","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 보이 크롭 피그먼트 긴팔티셔츠 5종 KJLT2683","count":5,"season":"WS","sale_date":"2026-02-12","arrival":"2026-01-21","delivery":"2026-01-08","detail_shoot":"완료","detail_person":"김형준","model_person":"김형준","has_model":true,"nukki":"옷걸이","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"PS","name":"PS 리브 피그먼트 맨투맨 4종 JUMT4745","count":4,"season":"WS","sale_date":"2026-02-03","arrival":"2026-01-09","delivery":"2026-01-09","detail_shoot":"완료","detail_person":"김지인","model_person":"장종욱","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"WV","name":"WV 더프 스윙 자켓 4종 JJOT7845","count":4,"season":"WS","sale_date":"2026-02-03","arrival":"2026-01-16","delivery":"2026-01-09","detail_shoot":"완료","detail_person":"장종욱","model_person":"전현수","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 그레이시 블루 데님팬츠 HSLP6927","count":1,"season":"WS","sale_date":"2026-02-03","arrival":"2026-01-13","delivery":"2026-01-13","detail_shoot":"완료","detail_person":"김민재","model_person":"김민재","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"FP","name":"FP 피그먼트 와플라이닝 후드집업 3종 SMHD1560","count":3,"season":"WS","sale_date":"2026-02-12","arrival":"2026-01-21","delivery":"2026-01-19","detail_shoot":"완료","detail_person":"김지인","model_person":"이정주","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"FP","name":"FP 돔 헤비웨이트 후드 6종 JUHD1564","count":6,"season":"WS","sale_date":"2026-02-12","arrival":"2026-01-29","delivery":"2026-01-20","detail_shoot":"완료","detail_person":"장종욱","model_person":"장종욱","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 인디고 와이드 데님팬츠 MMLP6929","count":1,"season":"WS","sale_date":"2026-02-09","arrival":"2026-01-21","delivery":"2026-01-21","detail_shoot":"완료","detail_person":"김민재","model_person":"김민재","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"PS","name":"PS 헤리티지 헤비 맨투맨 5종 SJMT4746","count":5,"season":"WS","sale_date":"2026-02-09","arrival":"2026-01-23","delivery":"2026-01-21","detail_shoot":"완료","detail_person":"임순혁","model_person":"홍성미","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 슬럽 워싱 데님 셔츠 3종 SJLS6928","count":3,"season":"WS","sale_date":"2026-02-09","arrival":"2026-01-23","delivery":"2026-01-21","detail_shoot":"완료","detail_person":"임순혁","model_person":"김민재","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 케이트 체크 셔츠 2종 JILS6926","count":2,"season":"WS","sale_date":"2026-02-11","arrival":"2026-01-23","delivery":"2026-01-21","detail_shoot":"완료","detail_person":"김형준","model_person":"김지인","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"FP","name":"FP 빌트 워크 셔츠 3종 SMLS1561","count":3,"season":"WS","sale_date":"2026-02-06","arrival":"2026-01-23","delivery":"2026-01-22","detail_shoot":"완료","detail_person":"김지인","model_person":"이정주","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 블랭크 맨투맨 4종 KJMT2689","count":4,"season":"WS","sale_date":"2026-02-06","arrival":"2026-01-27","delivery":"2026-01-22","detail_shoot":"완료","detail_person":"임순혁","model_person":"임순혁","has_model":true,"nukki":"옷걸이","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"FP","name":"FP 라이트 워크셔츠 4종 KHLS1551","count":4,"season":"WS","sale_date":"2026-02-12","arrival":"2026-02-13","delivery":"2026-01-22","detail_shoot":"완료","detail_person":"전현수","model_person":"이정주","has_model":true,"nukki":"바닥","country":"해외","web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 아크 넥 후드 3종 MMHD6924","count":3,"season":"WS","sale_date":"2026-02-06","arrival":"2026-01-23","delivery":"2026-01-23","detail_shoot":"완료","detail_person":"김민재","model_person":"김민재","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"WV","name":"WV 라이즈앤드 긴팔티셔츠 3종 JILT7852","count":3,"season":"WS","sale_date":"2026-02-06","arrival":"2026-01-28","delivery":"2026-01-23","detail_shoot":"완료","detail_person":"김지인","model_person":"김지인","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"FP","name":"FP 라이트 워크 팬츠 4종 KHLP1552","count":4,"season":"WS","sale_date":"2026-02-12","arrival":"2026-02-13","delivery":"2026-01-26","detail_shoot":"완료","detail_person":"김지인","model_person":"이정주","has_model":true,"nukki":"바닥","country":"해외","web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"PS","name":"PS 피그먼트 크롭 투 파인더 후드집업 6종 JUHD4742","count":6,"season":"WS","sale_date":"2026-02-09","arrival":"2026-01-29","delivery":"2026-01-27","detail_shoot":"완료","detail_person":"임순혁","model_person":"장종욱","has_model":true,"nukki":"바닥","country":"해외","web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"PS","name":"PS 레이지 필드 피그먼트 카라 맨투맨 4종 ISMT4743","count":4,"season":"WS","sale_date":"2026-02-11","arrival":"2026-01-29","delivery":"2026-01-27","detail_shoot":"완료","detail_person":"김지인","model_person":"임순혁","has_model":true,"nukki":"바닥","country":"해외","web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 블루 섀도우 와이드 데님팬츠 MMLP6931","count":1,"season":"WS","sale_date":"2026-02-11","arrival":"2026-01-28","delivery":"2026-01-28","detail_shoot":"완료","detail_person":"김민재","model_person":"김민재","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"FP","name":"FP 웨더 포지 워크 자켓 2종 ISOT1563","count":2,"season":"WS","sale_date":"2026-02-12","arrival":"2026-01-28","delivery":"2026-01-28","detail_shoot":"완료","detail_person":"임순혁","model_person":"성지현","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 플린트 워시드 셔츠 4종 HSLS6934","count":4,"season":"WS","sale_date":"2026-02-11","arrival":"2026-01-29","delivery":"2026-01-28","detail_shoot":"완료","detail_person":"성지현","model_person":"전현수","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"WV","name":"WV 루스터 긴팔티셔츠 3종 JILT7843","count":3,"season":"WS","sale_date":"2026-02-12","arrival":"2026-01-29","delivery":"2026-01-28","detail_shoot":"완료","detail_person":"김지인","model_person":"김지인","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"WV","name":"WV 레트로 크루넥 맨투맨 3종 MMMT7856","count":3,"season":"WS","sale_date":"2026-02-06","arrival":"2026-01-30","delivery":"2026-01-28","detail_shoot":"완료","detail_person":"김지인","model_person":"이정주","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 어나더데이 후드 4종 HSHD2688","count":4,"season":"WS","sale_date":"2026-02-06","arrival":"2026-01-28","delivery":"2026-02-02","detail_shoot":"완료","detail_person":"김형준","model_person":"김형준","has_model":true,"nukki":"옷걸이","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"WV","name":"WV 토크드 워싱 배럴 팬츠 5종 ISLP7854","count":5,"season":"WS","sale_date":"2026-02-12","arrival":"2026-01-02","delivery":"c","detail_shoot":"완료","detail_person":"김민재","model_person":"이정주","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"WV","name":"WV 페이드 와이드 데님팬츠 KJLP7853","count":1,"season":"WS","sale_date":"2026-02-26","arrival":"2026-01-30","delivery":"2026-01-27","detail_shoot":"완료","detail_person":"김형준","model_person":"이정주","has_model":true,"nukki":"옷걸이","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"FP","name":"FP 투플라이 라이트 후드집업 5종 SJHD1553","count":5,"season":"WS","sale_date":"2026-02-27","arrival":"2026-02-10","delivery":"2026-02-02","detail_shoot":"완료","detail_person":"성지현","model_person":"성지현","has_model":true,"nukki":"옷걸이","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"WV","name":"WV 스냅포인트 후드집업 5종 JJHD7844","count":5,"season":"WS","sale_date":"2026-02-26","arrival":"2026-02-27","delivery":"2026-02-12","detail_shoot":"완료","detail_person":"김지인","model_person":"이정주","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"WV","name":"WV 웰던 와플 롱슬리브 3종 JJLT7849","count":3,"season":"WS","sale_date":"2026-02-26","arrival":"2026-02-27","delivery":"2026-02-03","detail_shoot":"완료","detail_person":"김지인","model_person":"이정주","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"WV","name":"WV 더프 코지 유틸리티 자켓 SJOT7847","count":4,"season":"WS","sale_date":"2026-02-26","arrival":"2026-02-11","delivery":"2026-02-04","detail_shoot":"완료","detail_person":"경단비","model_person":"경단비","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"WV","name":"WV 더프 오버핏 워싱코튼 셔츠 4종 SMLS7855","count":4,"season":"WS","sale_date":"2026-02-26","arrival":"2026-02-26","delivery":"2026-02-12","detail_shoot":"완료","detail_person":"김지인","model_person":"이정주","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"WV","name":"WV 더프 올드스쿨 자켓 3종 JJOT7848","count":3,"season":"WS","sale_date":"2026-02-26","arrival":"2026-02-25","delivery":"2026-02-12","detail_shoot":"완료","detail_person":"김지인","model_person":"이정주","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"PS","name":"PS 노바 쉘 자켓 3종 HSOT4755","count":3,"season":"WS","sale_date":"2026-02-27","arrival":"2026-02-25","delivery":"2026-02-12","detail_shoot":"완료","detail_person":"임순혁","model_person":"장종욱","has_model":true,"nukki":"옷걸이","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"PS","name":"PS 스테이블 헨리넥 긴팔티 4종 SJLS4748","count":4,"season":"WS","sale_date":"2026-02-27","arrival":"2026-02-13","delivery":"2026-02-09","detail_shoot":"완료","detail_person":"장종욱","model_person":"장종욱","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 크롭 릿지 하프넥 맨투맨 4종 ISMT6923","count":4,"season":"WS","sale_date":"2026-03-03","arrival":"2026-02-27","delivery":"2026-02-10","detail_shoot":"완료","detail_person":"김형준","model_person":"김민재","has_model":true,"nukki":"바닥","country":"해외","web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 애쉬 컷아웃 긴팔티셔츠 3종 MMLT6937","count":3,"season":"WS","sale_date":"2026-02-27","arrival":"2026-02-13","delivery":"2026-02-11","detail_shoot":"완료","detail_person":"김민재","model_person":"김민재","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"PS","name":"PS 베스티지 코치자켓 JUOT4756","count":3,"season":"WS","sale_date":"2026-02-27","arrival":"2026-02-11","delivery":"2026-02-12","detail_shoot":"완료","detail_person":"전현수","model_person":"장종욱","has_model":true,"nukki":"옷걸이","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"PS","name":"PS 드리프트 옥스포드 셔츠 4종 JULS4753","count":4,"season":"WS","sale_date":"2026-02-27","arrival":"2026-02-27","delivery":"2026-02-12","detail_shoot":"완료","detail_person":"장종욱","model_person":"장종욱","has_model":true,"nukki":"옷걸이","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 크롭 데님 후드 자켓 KJOT6936","count":1,"season":"WS","sale_date":"2026-03-03","arrival":"2026-03-10","delivery":"2026-02-12","detail_shoot":"완료","detail_person":"김민재","model_person":"김민재","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 스트레이 카고팬츠 3종 JILP6930","count":3,"season":"WS","sale_date":"2026-02-27","arrival":"2026-02-05","delivery":"2026-02-04","detail_shoot":"완료","detail_person":"김지인","model_person":"김지인","has_model":true,"nukki":"바닥","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"FP","name":"FP 시즌리스 커브 와이드 스웨트팬츠 5종 SJLP1554","count":5,"season":"WS","sale_date":"2026-03-03","arrival":"2026-02-27","delivery":"2026-02-04","detail_shoot":"완료","detail_person":"임순혁","model_person":"임순혁","has_model":true,"nukki":"바닥","country":"해외","web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 커브 워시드 팬츠 4종 MMLP2693","count":4,"season":"WS","sale_date":"2026-02-27","arrival":"2026-03-10","delivery":"2026-01-30","detail_shoot":"완료","detail_person":"김민재","model_person":"이정주","has_model":true,"nukki":"옷걸이","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 텍스처 헨리넥 긴팔티셔츠 5종 SJLT2690","count":5,"season":"WS","sale_date":"2026-03-03","arrival":"2026-02-10","delivery":"2026-02-03","detail_shoot":"완료","detail_person":"성지현","model_person":"성지현","has_model":true,"nukki":"옷걸이","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"FP","name":"FP ORBT 오리지널 수페리어 긴팔티 2종 KJLT1555","count":2,"season":"WS","sale_date":"2026-03-03","arrival":"2026-02-27","delivery":"2026-02-04","detail_shoot":"완료","detail_person":"성지현","model_person":"성지현","has_model":true,"nukki":"옷걸이","country":"해외","web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 바이오 옥스포드 데일리 셔츠 3종 KJLS2692","count":3,"season":"WS","sale_date":"2026-02-27","arrival":"2026-02-13","delivery":"2026-02-12","detail_shoot":"완료","detail_person":"임순혁","model_person":"김형준","has_model":true,"nukki":"옷걸이","country":null,"web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"WV","name":"WV 플립 포켓 스탠드 집업 4종 MMOT7846","count":4,"season":"WS","sale_date":"2026-02-26","arrival":"2026-03-04","delivery":"2026-02-13","detail_shoot":"완료","detail_person":"김형준","model_person":"이정주","has_model":true,"nukki":"바닥","country":"해외","web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"FP","name":"FP MTOR 디버스위브 카라 맨투맨 SJMT1558","count":4,"season":"WS","sale_date":"2026-03-03","arrival":"2026-03-12","delivery":"2026-02-10","detail_shoot":"완료","detail_person":"경단비","model_person":"이정주","has_model":true,"nukki":"바닥","country":"해외","web_status":"완료","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 스톤 콜드 와이드 데님 팬츠 HSLP2700","count":1,"season":"WS","sale_date":"2026-03-05","arrival":"2026-03-03","delivery":"2026-03-03","detail_shoot":"2026-03-03","detail_person":"임순혁","model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"예정(03/04)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"EZ","name":"EZ 페이드 워싱 크롭 후드집업 MMOT6938","count":3,"season":"WS","sale_date":"2026-03-05","arrival":"2026-03-05","delivery":"2026-03-03","detail_shoot":"2026-03-03","detail_person":"김민재","model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"예정(03/04)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"EZ","name":"EZ 피그먼트 베이스 후드집업 4종 SJHD6925","count":4,"season":"WS","sale_date":"2026-03-05","arrival":"2026-03-06","delivery":"2026-02-24","detail_shoot":"완료","detail_person":"김형준","model_person":null,"has_model":true,"nukki":"바닥","country":"해외","web_status":"예정(03/04)","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"FP","name":"FP 필드 워크 셔츠 4종 SJLS1556","count":4,"season":"WS","sale_date":"2026-03-05","arrival":"2026-03-10","delivery":"2026-02-26","detail_shoot":"완료","detail_person":"성지현","model_person":"이정주","has_model":true,"nukki":"바닥","country":"해외","web_status":"예정(03/04)","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"WV","name":"WV 데일리휴즈 후드집업 5종 JIHD7857","count":5,"season":"WS","sale_date":"2026-03-04","arrival":"2026-03-10","delivery":"2026-03-03","detail_shoot":"2026-03-03","detail_person":"김지인","model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"예정(03/05)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"WV","name":"WV 케빈 반팔티셔츠 4종 JIST7851","count":4,"season":"SS","sale_date":null,"arrival":"2026-01-22","delivery":"2026-01-21","detail_shoot":"2026-03-03","detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"예정(03/13)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"FP","name":"FP 루츠 더블니 워크팬츠 SJLP1559","count":3,"season":"WS","sale_date":"2026-03-05","arrival":"2026-02-27","delivery":"2026-02-26","detail_shoot":"완료","detail_person":"김지인","model_person":"이정주","has_model":true,"nukki":"바닥","country":null,"web_status":"예정(03/04)","has_delivery":true,"has_arrival":true,"detail_done":true,"detail_scheduled":false,"reg_state":""},{"brand":"WV","name":"WV 박시 크롭 반팔티셔츠 MMST7858","count":6,"season":"SS","sale_date":null,"arrival":"2026-02-24","delivery":"2026-02-24","detail_shoot":"2026-03-03","detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"예정(03/13)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"PS","name":"PS 디사이드 자켓 3종 JUOT4749","count":3,"season":"WS","sale_date":"2026-03-06","arrival":"2026-03-05","delivery":"2026-03-04","detail_shoot":"2026-03-04","detail_person":"장종욱","model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"예정(03/05)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"JM","name":"JM 온오프 트랙자켓 JJOT2694","count":4,"season":"WS","sale_date":"2026-03-06","arrival":"2026-03-10","delivery":"2026-03-04","detail_shoot":"2026-03-04","detail_person":"임순혁","model_person":null,"has_model":true,"nukki":"옷걸이","country":null,"web_status":"예정(03/05)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"FP","name":"FP 974OG 브리즈 긴팔티셔츠 SJLT1557","count":2,"season":"WS","sale_date":"2026-03-06","arrival":"2026-03-10","delivery":"2026-03-04","detail_shoot":"2026-03-04","detail_person":"성지현","model_person":null,"has_model":true,"nukki":"옷걸이","country":null,"web_status":"예정(03/05)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"PS","name":"PS 그리트 슬럽 데님셔츠 2종 JULS4754","count":2,"season":"WS","sale_date":"2026-03-06","arrival":"2026-03-13","delivery":"2026-03-04","detail_shoot":"2026-03-04","detail_person":"김형준","model_person":null,"has_model":true,"nukki":"옷걸이","country":null,"web_status":"예정(03/05)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"JM","name":"JM 보이 크롭 U넥 반팔티셔츠 6종 KJST2691","count":6,"season":"SS","sale_date":null,"arrival":"2026-01-30","delivery":"2026-01-28","detail_shoot":"2026-03-11","detail_person":null,"model_person":null,"has_model":true,"nukki":"옷걸이","country":null,"web_status":"예정(03/13)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"EZ","name":"EZ 투스 포켓 피그먼트 반팔티셔츠 4종 JIST6932","count":4,"season":"SS","sale_date":null,"arrival":"2026-02-10","delivery":"2026-02-09","detail_shoot":"2026-03-11","detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"예정(03/13)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"FP","name":"FP MTOR 오리진 디버스위브 반팔티셔츠 5종 ISST1565","count":5,"season":"SS","sale_date":null,"arrival":"2026-02-10","delivery":"2026-02-24","detail_shoot":"2026-03-11","detail_person":null,"model_person":null,"has_model":true,"nukki":"옷걸이","country":null,"web_status":"예정(03/13)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"FP","name":"FP 974OG 포켓 슬러브 반팔티 SJST1566","count":5,"season":"SS","sale_date":null,"arrival":"2026-02-12","delivery":"2026-02-24","detail_shoot":"2026-03-11","detail_person":null,"model_person":null,"has_model":true,"nukki":"옷걸이","country":null,"web_status":"예정(03/13)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"JM","name":"JM 실키바이오 카라 반팔티셔츠 3종 HSST2695","count":3,"season":"SS","sale_date":null,"arrival":"2026-02-13","delivery":"2026-02-24","detail_shoot":"2026-03-11","detail_person":null,"model_person":null,"has_model":true,"nukki":"옷걸이","country":null,"web_status":"예정(03/13)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"EZ","name":"EZ 포워드 레귤러 반팔티셔츠 5종 MMST6933","count":5,"season":"SS","sale_date":null,"arrival":"2026-02-26","delivery":"2026-02-27","detail_shoot":"2026-03-11","detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"예정(03/13)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"PS","name":"PS 윕스 반팔티셔츠 5종 JIST4757","count":5,"season":"SS","sale_date":null,"arrival":"2026-03-06","delivery":"2026-02-26","detail_shoot":"2026-03-12","detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"예정(03/13)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"PS","name":"PS 시티 워커 팬츠 JULP4763","count":4,"season":"SS","sale_date":null,"arrival":"2026-03-06","delivery":null,"detail_shoot":"2026-03-12","detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"예정(03/13)","has_delivery":false,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"PS","name":"PS 데이 베이직 반팔티셔츠 5종 JUST4758","count":5,"season":"SS","sale_date":null,"arrival":"2026-02-13","delivery":"2026-02-28","detail_shoot":"2026-03-12","detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"예정(03/13)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"PS","name":"PS 피그먼트 퍼티그 하프팬츠 JUSP4760","count":4,"season":"SS","sale_date":null,"arrival":"2026-03-10","delivery":null,"detail_shoot":"2026-03-12","detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"미정","has_delivery":false,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"PS","name":"PS 소윙 터프넥 반팔티셔츠 4종 ISST4759","count":4,"season":"SS","sale_date":null,"arrival":"2026-02-24","delivery":"2026-02-12","detail_shoot":"2026-03-12","detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"예정(03/13)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""},{"brand":"PS","name":"PS 버티컬 퍼티그 팬츠 2종 JULP4751","count":2,"season":"SS","sale_date":null,"arrival":"2026-04-15","delivery":null,"detail_shoot":null,"detail_person":"장종욱","model_person":null,"has_model":true,"nukki":"바닥","country":"해외","web_status":"미정","has_delivery":false,"has_arrival":true,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 고딕 심볼 오버핏 반팔티셔츠 4종 MMST6940","count":4,"season":"SS","sale_date":null,"arrival":"2026-03-06","delivery":"2026-03-04","detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"미정","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"FP","name":"FP 974OG 메테오 헤비 크루넥 반팔티 SJST1567","count":5,"season":"SS","sale_date":null,"arrival":"2026-03-11","delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"미정","has_delivery":false,"has_arrival":true,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 힌지 원턱 커브드 팬츠 4종 ISLP2699","count":4,"season":"SS","sale_date":null,"arrival":null,"delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"미정","has_delivery":false,"has_arrival":false,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 피그다잉 카펜터 버뮤다 스웨트팬츠 4종 KJSP6939","count":4,"season":"SS","sale_date":null,"arrival":"2026-03-23","delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":null,"country":"해외","web_status":"미정","has_delivery":false,"has_arrival":true,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 로우 반팔티셔츠 4종 JIST6943","count":2,"season":"SS","sale_date":null,"arrival":"2026-03-13","delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"미정","has_delivery":false,"has_arrival":true,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 모션 와이드 스트레이트 팬츠 KJLP2687","count":4,"season":"SS","sale_date":null,"arrival":"2026-03-17","delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":"해외","web_status":"미정","has_delivery":false,"has_arrival":true,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"FP","name":"FP 974OG 파인 듀어 반팔티 SJST1570","count":5,"season":"SS","sale_date":null,"arrival":"2026-03-17","delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":"옷걸이","country":null,"web_status":"미정","has_delivery":false,"has_arrival":true,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"FP","name":"FP 어던트 실켓 카라 반팔티셔츠 4종 ISST1568","count":4,"season":"SS","sale_date":null,"arrival":null,"delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":"옷걸이","country":null,"web_status":"미정","has_delivery":false,"has_arrival":false,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"PS","name":"PS 앰블 샴브레이 팬츠 JULP4761","count":2,"season":"SS","sale_date":null,"arrival":"2026-04-23","delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":"해외","web_status":"미정","has_delivery":false,"has_arrival":true,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 에어플로우 린넨 라이크 팬츠 HSLP2697","count":5,"season":"SS","sale_date":null,"arrival":"2026-04-22","delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":"해외","web_status":"미정","has_delivery":false,"has_arrival":true,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 30s 브리즈 벌룬 와이드 팬츠 4종 MMLP6941","count":4,"season":"SS","sale_date":null,"arrival":null,"delivery":"2026-03-13","detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"미정","has_delivery":true,"has_arrival":false,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"PS","name":"PS 라이트유닛 카고팬츠 4종 HSLP4747","count":4,"season":"SS","sale_date":null,"arrival":null,"delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":"해외","web_status":"미정","has_delivery":false,"has_arrival":false,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"WV","name":"WV 데이 라이트 밴딩팬츠 5종 JILP7859","count":5,"season":"SS","sale_date":null,"arrival":null,"delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":null,"country":"해외","web_status":"미정","has_delivery":false,"has_arrival":false,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"PS","name":"PS 쿨믹스 린넨 라이크 필드팬츠 SJLP4762","count":4,"season":"SS","sale_date":null,"arrival":"2026-04-24","delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":"해외","web_status":"미정","has_delivery":false,"has_arrival":true,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 블리츠 워시드 와이드 스웨트팬츠 HSLP6942","count":2,"season":"SS","sale_date":null,"arrival":null,"delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"미정","has_delivery":false,"has_arrival":false,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 리도 투턱 버뮤다 팬츠 JUSP6944","count":4,"season":"SS","sale_date":null,"arrival":null,"delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":"바닥","country":null,"web_status":"미정","has_delivery":false,"has_arrival":false,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 버스터 피그먼트 반팔티셔츠 KJST6945","count":4,"season":"SS","sale_date":null,"arrival":null,"delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":null,"country":null,"web_status":"미정","has_delivery":false,"has_arrival":false,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"EZ","name":"EZ 니트 오픈카라 반팔 셔츠 MMSS6946","count":3,"season":"SS","sale_date":null,"arrival":null,"delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":null,"country":null,"web_status":"미정","has_delivery":false,"has_arrival":false,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 스티크 린넨데님 반팔셔츠 ISSS2704","count":1,"season":"SS","sale_date":null,"arrival":null,"delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":null,"country":null,"web_status":"미정","has_delivery":false,"has_arrival":false,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 소프트 바이오 반팔티셔츠 KJST27002","count":5,"season":"SS","sale_date":null,"arrival":null,"delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":"옷걸이","country":null,"web_status":"미정","has_delivery":false,"has_arrival":false,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 클린 원턱 밴딩 와이드 슬랙스 KJLP2702","count":3,"season":"SS","sale_date":null,"arrival":null,"delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":"옷걸이","country":null,"web_status":"미정","has_delivery":false,"has_arrival":false,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"FP","name":"FP 레저오브듀티 반팔티셔츠 JUST1569","count":4,"season":"SS","sale_date":null,"arrival":null,"delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":true,"nukki":"옷걸이","country":null,"web_status":"미정","has_delivery":false,"has_arrival":false,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 카치온 D링 버뮤다 팬츠 KJSP2701","count":6,"season":"SS","sale_date":null,"arrival":null,"delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":false,"nukki":"옷걸이","country":null,"web_status":"미정","has_delivery":false,"has_arrival":false,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 버터 스트라이프 반팔셔츠 KJSS2703","count":4,"season":"SS","sale_date":null,"arrival":null,"delivery":null,"detail_shoot":null,"detail_person":null,"model_person":null,"has_model":false,"nukki":"옷걸이","country":null,"web_status":"미정","has_delivery":false,"has_arrival":false,"detail_done":false,"detail_scheduled":false,"reg_state":""},{"brand":"JM","name":"JM 테넌 라이트 블루종 JUOT2696","count":3,"season":"WS","sale_date":"2026-03-06","arrival":"2026-03-13","delivery":"2026-03-04","detail_shoot":"2026-03-04","detail_person":"김민재","model_person":null,"has_model":true,"nukki":"옷걸이","country":null,"web_status":"예정(03/05)","has_delivery":true,"has_arrival":true,"detail_done":false,"detail_scheduled":true,"reg_state":""}];
+
+  const INITIAL_SHOOTS = [
+    { id: 1, label: '1회차', date: '1월 28일', done: true },
+    { id: 2, label: '2회차', date: '2월 20일', done: true },
+    { id: 3, label: '3회차', date: '3월 27일', done: false },
+    { id: 4, label: '4회차', date: '3월 27일', done: false },
+  ];
+
+  const loadingText = document.querySelector('.loading-text');
+  loadingText.textContent = '데이터 마이그레이션 중... (최초 1회)';
+
+  // Batch write products
+  let batch = db.batch();
+  let count = 0;
+  for (const item of INITIAL_DATA) {
+    const ref = db.collection('products').doc();
+    batch.set(ref, item);
+    count++;
+    if (count % 450 === 0) {
+      await batch.commit();
+      batch = db.batch();
+    }
+  }
+
+  // Write model shoots
+  for (const shoot of INITIAL_SHOOTS) {
+    const ref = db.collection('modelShoots').doc();
+    batch.set(ref, shoot);
+  }
+
+  await batch.commit();
+  loadingText.textContent = `마이그레이션 완료! ${INITIAL_DATA.length}개 상품 + ${INITIAL_SHOOTS.length}개 촬영일정`;
+  console.log('Migration done!');
+
+  setTimeout(() => loadData(), 1500);
+}
+
+// ============================================
+// 시작
+// ============================================
+async function init() {
+  // Firestore에 데이터가 있는지 확인
+  const check = await db.collection('products').limit(1).get();
+  if (check.empty) {
+    // 최초 실행 - 데이터 마이그레이션
+    await migrateData();
+  } else {
+    // 데이터 있음 - 로드
+    await loadData();
+  }
+}
+
+init();
+</script>
+</body>
+</html>
