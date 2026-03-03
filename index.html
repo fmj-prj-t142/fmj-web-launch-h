@@ -2088,6 +2088,8 @@
     // ============================================
     // 컬럼 헤더 드롭다운 필터
     // ============================================
+    let _skipClose = false;
+
     function toggleColDropdown(type, e) {
       e.stopPropagation();
       const dd = document.getElementById(`col-dd-${type}`);
@@ -2101,6 +2103,8 @@
         renderColDropdown(type);
         dd.classList.add('show');
         e.currentTarget.classList.add('open');
+        _skipClose = true;
+        setTimeout(() => { _skipClose = false; }, 0);
       }
     }
 
@@ -2160,6 +2164,7 @@
 
     // 드롭다운 외부 클릭 시 닫기
     document.addEventListener('click', () => {
+      if (_skipClose) return;
       document.querySelectorAll('.col-dropdown').forEach(d => d.classList.remove('show'));
       document.querySelectorAll('.th-filter').forEach(d => d.classList.remove('open'));
     });
